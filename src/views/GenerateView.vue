@@ -96,9 +96,10 @@ onMounted(() => {
   sceneId.value = (route.query.scene as Scene) || 'focus'
   timePeriod.value = (route.query.timePeriod as string) || '下午专注'
 
+  // vue-router auto-decodes query strings; do NOT decodeURIComponent again
   const sceneDesc = route.query.sceneDesc
   if (typeof sceneDesc === 'string') {
-    formData.value.sceneInput = decodeURIComponent(sceneDesc)
+    formData.value.sceneInput = sceneDesc
   }
 
   const scenePreset: Record<Scene, Partial<Recommendation>> = {

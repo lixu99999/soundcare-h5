@@ -113,6 +113,7 @@ class PlayerHRV {
 
 const hrvCalc = new PlayerHRV()
 const initialHRV = 40
+const targetHRV = 65
 
 function generateSimulatedRRI(targetHRV: number, heartRateBPM: number): number[] {
   const interval = 60000 / heartRateBPM
@@ -277,17 +278,25 @@ onUnmounted(() => {
   if (musicRegenerateTimer) clearInterval(musicRegenerateTimer)
 })
 
-// 曲线绘制
-const CURVE_WIDTH = 560 // 与 rpx 设计稿宽度同步
+// 曲线绘制 — 750 设计稿坐标
+// X 轴 = 时间：固定 20 个槽位（每槽 = 5 秒，最新点在最右），HRV 实时推进时新点最右插入、旧点左移。
+// Y 轴 = HRV 数值：在 MIN_HRV..MAX_HRV 范围映射到 CURVE_HEIGHT（顶=高HRV，底=低HRV）。
+// 浏览器不认 `rpx`，用 rem 输出（1 设计 px = 0.01rem，对齐 _tokens.scss rpx()）。
+const CURVE_WIDTH = 560
 const CURVE_HEIGHT = 120
+const CURVE_SLOTS = 20 // 横轴槽位数（5 秒/槽 ≈ 100 秒窗口）
 const MAX_HRV = 80
 const MIN_HRV = 20
 
+const rpx2rem = (n: number): number => Math.round(n) / 100
+
 const getHRVCurveDots = (): Array<{ x: number; y: number }> => {
-  const points = hrvHistory.value.slice(-20)
+  const points = hrvHistory.value.slice(-CURVE_SLOTS)
   if (points.length === 0) return []
-  return points.map((value, index) => {
-    const x = Math.round((index / (points.length - 1 || 1)) * CURVE_WIDTH)
+  const slotWidth = CURVE_WIDTH / CURVE_SLOTS
+  return points.map((value, slot) => {
+    // slot 0 = 最旧（左），slot (length-1) = 最新（右）
+    const x = Math.round(slot * slotWidth)
     const yRatio = Math.max(0, Math.min(1, (value - MIN_HRV) / (MAX_HRV - MIN_HRV)))
     const y = Math.round(CURVE_HEIGHT * (1 - yRatio))
     return { x, y }
@@ -295,10 +304,11 @@ const getHRVCurveDots = (): Array<{ x: number; y: number }> => {
 }
 
 const getCurveWidth = (): string => {
-  const points = hrvHistory.value.slice(-20)
-  if (points.length < 2) return '0'
-  const stepX = CURVE_WIDTH / (points.length - 1)
-  return `${Math.round(stepX * (points.length - 1))}px`
+  const points = hrvHistory.value.slice(-CURVE_SLOTS)
+  if (points.length === 0) return '0rem'
+  // 曲线宽度 = 实际占用的槽位数 × 槽宽
+  const slotWidth = CURVE_WIDTH / CURVE_SLOTS
+  return `${rpx2rem(Math.round(points.length * slotWidth))}rem`
 }
 
 const getCurrentHRVPoint = (): { cx: number; cy: number } => {
@@ -371,8 +381,8 @@ const getHRVBadgeClass = (): string => HRV_BADGE_MAP[hrvStatus.value] || 'normal
               :key="index"
               class="curve-dot"
               :style="{
-                left: point.x + 'px',
-                bottom: point.y + 'px',
+                left: rpx2rem(point.x) + 'rem',
+                bottom: rpx2rem(point.y) + 'rem',
                 backgroundColor: index === getHRVCurveDots().length - 1 ? '#FF6B00' : '#FF8C42',
               }"
             ></span>
@@ -381,9 +391,9 @@ const getHRVBadgeClass = (): string => HRV_BADGE_MAP[hrvStatus.value] || 'normal
         </div>
       </div>
       <div class="curve-legend">
-        <span class="legend-item">初始: 32ms</span>
+        <span class="legend-item">初始: {{ initialHRV }}ms</span>
         <span class="legend-item">→ 当前: {{ currentHRV }}ms</span>
-        <span class="legend-item">目标: 65ms</span>
+        <span class="legend-item">目标: {{ targetHRV }}ms</span>
       </div>
     </section>
 

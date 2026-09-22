@@ -16,8 +16,10 @@ const scene = ref('')
 const isGenerating = ref(false)
 
 onMounted(() => {
+  // vue-router auto-decodes query strings, so route.query.prompt is already decoded.
+  // Calling decodeURIComponent again throws URIError if the prompt contains '%'.
   const p = route.query.prompt
-  prompt.value = typeof p === 'string' ? decodeURIComponent(p) : ''
+  prompt.value = typeof p === 'string' ? p : ''
   scene.value = (route.query.scene as string) || ''
 })
 

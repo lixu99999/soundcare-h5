@@ -5,11 +5,23 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html, body {
+html {
+  // 750 design width → 100rem per design. Mobile scales linearly with viewport.
+  // On desktop the root caps at 64px so a 480px-wide centered .container always
+  // renders at "phone size" regardless of browser window width.
+  font-size: calc(100vw / 7.5);
+  @media (min-width: 480px) {
+    font-size: 64px; // 480 / 7.5
+  }
+}
+
+body {
   margin: 0;
   padding: 0;
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  // Fixed 14px fallback for elements that don't use rpx(). Must NOT be on html,
+  // otherwise it overrides the dynamic html { font-size } above and breaks rpx().
   font-size: 14px;
   line-height: 1.5;
   color: $text;
